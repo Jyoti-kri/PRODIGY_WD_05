@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fancy Weather App</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  
+  <div class="theme-switch">
+    <button onclick="toggleTheme()" id="themeToggleText">🌙 Dark Mode</button>
+  </div>
+
+  <div class="weather-container">
+    <h1 class="gradient-text">🌤️ Weather App</h1>
+
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Enter city name..." oninput="showSuggestions()" />
+
+      <div class="action-buttons">
+        <button onclick="getWeather()">🔍 Search</button>
+        <button onclick="useVoiceInput()">🎤 Mic</button>
+        <button onclick="getWeatherByLocation()">📍 Current Location</button>
+        <button onclick="resetWeather()">❌ Reset</button>
+        <button onclick="toggleUnit()" id="unitToggle">°C ↔ °F</button>
+      </div>
+
+      <ul id="suggestions" class="suggestions-list"></ul>
+    </div>
+
+    <div id="weatherDetails" class="weather-info hidden">
+      <h2 id="location"></h2>
+      <p id="description"></p>
+
+      <div class="weather-cards">
+        <div class="weather-card">
+          <span>🌡️ Temperature</span>
+          <p><span id="temp"></span>°<span id="unitLabel">C</span> (Feels like <span id="feelsLike"></span>°)</p>
+        </div>
+        <div class="weather-card">
+          <span>💧 Humidity</span>
+          <p><span id="humidity"></span>%</p>
+        </div>
+        <div class="weather-card">
+          <span>🌀 Pressure</span>
+          <p><span id="pressure"></span> hPa</p>
+        </div>
+        <div class="weather-card">
+          <span>💨 Wind</span>
+          <p><span id="wind"></span> m/s (<span id="windDir"></span>)</p>
+        </div>
+        <div class="weather-card">
+          <span>🌅 Sunrise / 🌇 Sunset</span>
+          <p><span id="sunrise"></span> / <span id="sunset"></span></p>
+        </div>
+
+        
+        <div class="weather-card extra">
+          <span>☁️ Cloudiness</span>
+          <p><span id="clouds"></span>%</p>
+        </div>
+        <div class="weather-card extra">
+          <span>🌫️ Visibility</span>
+          <p><span id="visibility"></span> m</p>
+        </div>
+      </div>
+
+      <button class="view-more-btn" onclick="toggleMoreData(this)">🔽 View More</button>
+
+      <div class="forecast-wrapper hidden" id="forecastWrapper">
+        <div class="forecast-section">
+          <h3>🗕️ 7-Day Forecast</h3>
+          <div class="forecast-cards" id="forecastCards">
+            
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p id="errorMsg" class="error"></p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+
+
+
+
