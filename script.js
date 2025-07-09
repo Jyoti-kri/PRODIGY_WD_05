@@ -1,4 +1,4 @@
-
+// Trie Data Structure
 class TrieNode {
   constructor() {
     this.children = {};
@@ -42,30 +42,29 @@ class Trie {
 }
 
 const cityTrie = new Trie();
+const apiKey = "83a9cfca0a9091946ba0fdc7866fc997";
+let isCelsius = true;
 
+// Load city data
 function fetchCitiesFromCSV() {
   fetch("cities.csv")
     .then(response => response.text())
     .then(csv => {
       const rows = csv.split("\n").slice(1);
       rows.forEach(row => {
-        const [city, country] = row.split(",").map(val => val.trim());
+        const [city] = row.split(",").map(val => val.trim());
         if (city) cityTrie.insert(city);
       });
-    })
-    .catch(err => {
-      console.error("Failed to load cities.csv:", err);
     });
 }
 
-const apiKey = "83a9cfca0a9091946ba0fdc7866fc997";
-
+// Get current weather
 function getWeather(cityOverride = null) {
   const city = cityOverride || document.getElementById("cityInput").value.trim();
   const errorMsg = document.getElementById("errorMsg");
   errorMsg.textContent = "";
   if (!city) {
-    errorMsg.textContent = "Please enter a city name.";
+    showError("Please enter a city name.");
     return;
   }
 
@@ -79,12 +78,26 @@ function getWeather(cityOverride = null) {
       renderWeather(data);
       fetchForecast(city);
     })
-    .catch(err => {
-      errorMsg.textContent = "Could not retrieve weather data.";
-      console.error("Fetch error:", err.message);
-    });
+    .catch(() => showError("Could not retrieve weather data."));
 }
 
+function showError(msg) {
+  const box = document.getElementById("alertBox");
+  if (!box) return;
+  box.textContent = msg;
+  box.classList.add("visible");
+  setTimeout(() => box.classList.remove("visible"), 4000);
+}
+
+function showSuggestion(msg) {
+  const box = document.getElementById("alertBox");
+  if (!box) return;
+  box.textContent = msg;
+  box.classList.add("visible");
+  setTimeout(() => box.classList.remove("visible"), 5000);
+}
+
+// Render current weather
 function renderWeather(data) {
   const weatherBox = document.getElementById("weatherDetails");
   document.getElementById("location").textContent = `${data.name}, ${data.sys.country}`;
@@ -103,22 +116,48 @@ function renderWeather(data) {
   document.getElementById("sunrise").textContent = sunrise.toLocaleTimeString();
   document.getElementById("sunset").textContent = sunset.toLocaleTimeString();
 
+  // Show current date and time
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
+  const formattedTime = now.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const datetimeEl = document.getElementById("datetime");
+  if (datetimeEl) {
+    datetimeEl.textContent = `📅 ${formattedDate}, 🕒 ${formattedTime}`;
+  }
+
   weatherBox.classList.remove("hidden");
   document.getElementById("forecastWrapper").classList.add("hidden");
 
   document.querySelectorAll(".weather-card.extra").forEach(card => {
     card.classList.remove("visible");
   });
+
+  const weatherMain = data.weather[0].main.toLowerCase();
+  if (weatherMain.includes("rain")) document.body.setAttribute("data-theme", "rainy");
+  else if (weatherMain.includes("snow")) document.body.setAttribute("data-theme", "snowy");
+  else if (weatherMain.includes("clear")) document.body.setAttribute("data-theme", "sunny");
+  else if (weatherMain.includes("storm")) document.body.setAttribute("data-theme", "stormy");
+  else document.body.setAttribute("data-theme", "default");
+
+  showSuggestion("Tip: Carry an umbrella if it looks rainy! Stay hydrated in heat.");
 }
 
+// Fetch 5-day forecast (3-hour interval data)
 function fetchForecast(city) {
   const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
   fetch(url)
     .then(res => res.json())
-    .then(data => renderForecast(data.list))
-    .catch(err => console.error("Forecast error:", err));
+    .then(data => renderForecast(data.list));
 }
 
+// Render forecast for next 6 days
 function renderForecast(forecastList) {
   const container = document.getElementById("forecastCards");
   if (!container) return;
@@ -136,25 +175,17 @@ function renderForecast(forecastList) {
     const noonData = entries.find(entry => entry.dt_txt.includes("12:00:00")) || entries[Math.floor(entries.length / 2)];
     const card = document.createElement("div");
     card.className = "forecast-card";
-    card.innerHTML = `
-      <h4>${day}</h4>
-      <p>${noonData.weather[0].main}</p>
-      <p>${noonData.main.temp} °C</p>
-    `;
+    card.innerHTML = `<h4>${day}</h4><p>${noonData.weather[0].main}</p><p>${noonData.main.temp} °C</p>`;
     container.appendChild(card);
   });
 }
 
+// Toggle extra weather details
 function toggleMoreData(btn) {
   const extraCards = document.querySelectorAll(".weather-card.extra");
   const forecastWrapper = document.getElementById("forecastWrapper");
-
   const isHidden = !extraCards[0].classList.contains("visible");
-
-  extraCards.forEach(card => {
-    card.classList.toggle("visible");
-  });
-
+  extraCards.forEach(card => card.classList.toggle("visible"));
   if (isHidden) {
     forecastWrapper.classList.remove("hidden");
     forecastWrapper.classList.add("visible");
@@ -166,13 +197,12 @@ function toggleMoreData(btn) {
   }
 }
 
+// Show autocomplete suggestions
 function showSuggestions() {
   const input = document.getElementById("cityInput").value.toLowerCase();
   const list = document.getElementById("suggestions");
   list.innerHTML = "";
-
   if (!input) return;
-
   const matches = cityTrie.search(input);
   matches.forEach(city => {
     const li = document.createElement("li");
@@ -185,92 +215,107 @@ function showSuggestions() {
   });
 }
 
+// Voice recognition input
 function useVoiceInput() {
   if (!('webkitSpeechRecognition' in window)) {
     alert("Speech Recognition not supported in this browser.");
     return;
   }
-
   const recognition = new webkitSpeechRecognition();
   recognition.lang = "en-US";
   recognition.start();
-
-  recognition.onresult = function(event) {
+  recognition.onresult = function (event) {
     const spoken = event.results[0][0].transcript;
     document.getElementById("cityInput").value = spoken;
     getWeather(spoken);
   };
-
-  recognition.onerror = function(event) {
-    console.error("Speech error:", event.error);
-  };
 }
 
+// Get weather by geolocation
 function getWeatherByLocation() {
   if (!navigator.geolocation) {
-    document.getElementById("errorMsg").textContent = "Geolocation not supported.";
+    showError("Geolocation not supported.");
     return;
   }
-
   navigator.geolocation.getCurrentPosition(position => {
     const { latitude, longitude } = position.coords;
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
-
     fetch(url)
       .then(res => res.json())
       .then(data => {
         document.getElementById("cityInput").value = data.name;
         renderWeather(data);
         fetchForecast(data.name);
-      })
-      .catch(() => {
-        document.getElementById("errorMsg").textContent = "Failed to get weather for your location.";
       });
-  }, () => {
-    document.getElementById("errorMsg").textContent = "Location access denied.";
-  });
+  }, () => showError("Location access denied."));
 }
 
+// Reset everything
 function resetWeather() {
   document.getElementById("cityInput").value = "";
   document.getElementById("weatherDetails").classList.add("hidden");
   document.getElementById("errorMsg").textContent = "";
   document.getElementById("suggestions").innerHTML = "";
-
-  const fieldsToClear = [
-    "location", "description", "temp", "feelsLike", "humidity", "pressure",
-    "wind", "clouds", "visibility", "sunrise", "sunset", "windDir"
-  ];
+   document.getElementById("datetime").textContent = "";
+   
+  const fieldsToClear = ["location", "description", "temp", "feelsLike", "humidity", "pressure", "wind", "clouds", "visibility", "sunrise", "sunset", "windDir"];
   fieldsToClear.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = "";
   });
-
+  
   const forecastSection = document.getElementById("forecastCards");
   if (forecastSection) forecastSection.innerHTML = "";
-
+  
   const forecastWrapper = document.getElementById("forecastWrapper");
   if (forecastWrapper) forecastWrapper.classList.add("hidden");
 
-  document.querySelectorAll(".weather-card.extra").forEach(card => {
-    card.classList.remove("visible");
-  });
-
+  if (forecastWrapper) forecastWrapper.innerHTML = '';
+  document.querySelectorAll(".weather-card.extra").forEach(card => card.classList.remove("visible"));
   const viewMoreBtn = document.querySelector(".view-more-btn");
   if (viewMoreBtn) viewMoreBtn.textContent = "🔽 View More";
+  
+  document.body.setAttribute("data-theme", "default");
 }
 
+// Toggle dark/light theme
 function toggleTheme() {
   document.body.classList.toggle("dark-mode");
   const toggleText = document.getElementById("themeToggleText");
   toggleText.textContent = document.body.classList.contains("dark-mode") ? "🌞 Light Mode" : "🌙 Dark Mode";
 }
 
+// Switch temperature units
+function toggleUnit() {
+  const tempEl = document.getElementById("temp");
+  const feelsLikeEl = document.getElementById("feelsLike");
+  const unitLabel = document.getElementById("unitLabel");
+  if (!tempEl.textContent || !feelsLikeEl.textContent) return;
+  let temp = parseFloat(tempEl.textContent);
+  let feels = parseFloat(feelsLikeEl.textContent);
+  if (isNaN(temp) || isNaN(feels)) return;
+  if (isCelsius) {
+    temp = temp * 9 / 5 + 32;
+    feels = feels * 9 / 5 + 32;
+    unitLabel.textContent = "F";
+  } else {
+    temp = (temp - 32) * 5 / 9;
+    feels = (feels - 32) * 5 / 9;
+    unitLabel.textContent = "C";
+  }
+  tempEl.textContent = temp.toFixed(1);
+  feelsLikeEl.textContent = feels.toFixed(1);
+  isCelsius = !isCelsius;
+}
+
+// On page load
 window.addEventListener("load", () => {
   fetchCitiesFromCSV();
   document.body.classList.add("dark-mode");
   document.getElementById("themeToggleText").textContent = "🌞 Light Mode";
 });
+
+
 
 
 
